@@ -1,6 +1,6 @@
 from os.path import basename, splitext
 import tkinter as tk
-from tkinter import Label, Button, Scale, Canvas, Frame, Entry , LEFT, S, StringVar
+from tkinter import Label, Button, Scale, Canvas, Frame, Entry , LEFT, S, StringVar,END
 from tkinter.constants import HORIZONTAL
 
 # from tkinter import ttk
@@ -12,7 +12,8 @@ class Application(tk.Tk):
         super().__init__(className=self.name)
         self.title(self.name)
         self.bind("<Escape>", self.quit)  # kdyz dam esc tak quit
-        
+        self.protocol ("WM_DELETE_WINDOW", self.quit)
+
         self.varR = StringVar()
         self.frameR = Frame(self)
         self.frameR.pack()
@@ -82,7 +83,9 @@ class Application(tk.Tk):
                 canvas.grid(row =row, column =column)
                 canvas.bind("<Button-1>",self.mousehandler)
                 self.canvasMem.append(canvas)
-    
+         
+        self.colorLoad()
+
     def mousehandler(self, event):
         #print(dir(event))
         if self.cget("cursor")!="pencil" :
@@ -91,6 +94,9 @@ class Application(tk.Tk):
         elif self.cget("cursor") == "pencil" :
             self.config(cursor="")
             event.widget.config(background=self.color)
+    
+            if event.widget is self.canvasMain:
+                self.canvasColor2Slids(self.canvasMain)
     
     def change(self, var,index, mode):
         
@@ -103,11 +109,46 @@ class Application(tk.Tk):
         self.varMain.set(f"#{r:02x}{g:02x}{b:02x}")
         # self.varR.set(r)
         # self.varG.set(g)
-        # self.varB.set(b)
+        # self.varB.set(b) if exists("color.txt"):
 
+    def canvasColor2Slids(self, canvas):
+        color = canvas.cget("background")
+        r = int(color[1:3], 16)
+        g = int(color[3:5], 16)
+        b = int(color[5:], 16)
+        self.varR.set(r)
+        self.varG.set(g)
+        self.varB.set(b)
+        self.entryMain.delete(0, END)
+        self.entryMain.insert(0, color)
+
+    def colorSave(self):
+        with open("colors.txt", "w") as f:
+            f.write(self.canvasMain.cget("background")+"\n")
+            for canvas in self.canvasMem:
+                f.write(canvas.cget("background")+"\n")
+
+    def colorLoad(self):
+        try:
+            with open("colors.txt", "r") as f:
+                colorcode = f.readline().strip()
+                self.canvasMain.config(background=colorcode)
+                self.canvasColor2Slids(self.canvasMain)
+                for canvas in self.canvasMem:
+                    colorcode = f.readline().strip()
+                    canvas.config(background=colorcode)
+        except FileNotFoundError:
+            print("Nepodarilo se načíst soubor barev")
+        #except:
+        #    print("Soubor má špatný formát")
+       
+    
     def quit(self, event=None):
+        self.colorSave()
         super().quit()
 
 
 app = Application()
 app.mainloop()   # mainloop
+
+
